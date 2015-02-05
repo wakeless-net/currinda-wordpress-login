@@ -31,9 +31,19 @@ class CurrindaLogin {
 		add_action( 'admin_init',  array( $this, 'save_settings' ) );
 		add_action( 'plugins_loaded',  array( $this, 'widget_text_domain' ) );
     add_action( 'init', array( $this, 'login_validate' ) );
+    add_shortcode("currinda-login", array($this, "handle_shortcode"));
+
 
     $this->update_variables();
 	}
+
+  function handle_shortcode($attrs, $content) {
+    $a = shortcode_atts( array(
+      'class' => '',
+    ), $atts );
+    return "<a class='{$a["class"]}' href='$this->url?option=currinda_user_login'>$content</a>";
+
+  }
 
   function update_variables() {
 		$this->client_id = get_option('currinda_client_id');

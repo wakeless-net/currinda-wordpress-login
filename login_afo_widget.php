@@ -22,9 +22,7 @@ class CurrindaLoginWidget extends WP_Widget {
 		$wid_title = apply_filters( 'widget_title', $instance['wid_title'] );
 		
 		echo $args['before_widget'];
-		if ( ! empty( $wid_title ) )
-			echo $args['before_title'] . $wid_title . $args['after_title'];
-			$this->loginForm();
+			$this->loginForm($wid_title);
 		echo $args['after_widget'];
 	}
 
@@ -44,12 +42,12 @@ class CurrindaLoginWidget extends WP_Widget {
 		<?php 
 	}
 	
-	public function loginForm(){
+	public function loginForm($title = ""){
 		global $post;
 		$this->error_message();
 		if(!is_user_logged_in()){
 		?>
-      <a href='<?php echo $this->url; ?>?option=currinda_user_login'>Login with Currinda</a>
+      <a href='<?php echo $this->url; ?>?option=currinda_user_login'><?php echo $title ? $title : "Login with Currinda" ?></a>
 		<?php 
 		} else {
 		global $current_user;
