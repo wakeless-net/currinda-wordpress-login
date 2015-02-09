@@ -62,10 +62,10 @@ class CurrindaLoginWidget extends WP_Widget {
 	}
 	
 	public function error_message(){
-		if(isset($_SESSION['msg']) and $_SESSION['msg']){
-			echo '<div class="'.$_SESSION['msg_class'].'">'.$_SESSION['msg'].'</div>';
-			unset($_SESSION['msg']);
-			unset($_SESSION['msg_class']);
+    $error = CurrindaLogin::instance()->error;
+    
+		if($error){
+			echo '<div class="error_wid_login">'.$error->get_error_message().'</div>';
 		}
 	}
 	

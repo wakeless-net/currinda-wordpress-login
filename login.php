@@ -41,7 +41,16 @@ class CurrindaLogin {
     $a = shortcode_atts( array(
       'class' => '',
     ), $atts );
-    return "<a class='{$a["class"]}' href='$this->url?option=currinda_user_login'>$content</a>";
+
+
+    $output = "";
+    if($this->error) {
+      $output .= "<div class='error_wid_login'>Error: {$this->error->get_error_message()}</div>";
+    }
+
+    $output .= "<a class='{$a["class"]}' href='$this->url?option=currinda_user_login'>$content</a>";
+
+    return $output;
 
   }
 
@@ -140,13 +149,20 @@ class CurrindaLogin {
 	<?php
 	}
 
+  var $error;
+
   function login_validate() {
     if(isset($_GET['option']) and $_GET['option'] == "currinda_user_login") {
       $provider = $this->provider();
       if ( ! isset($_GET['code'])) {
-        // If we don't have an authorization code then get one
-        header('Location: '.$provider->getAuthorizationUrl());
-        exit;
+        if(isset($_GET["error"])) {
+          $this->error = new WP_Error($_GET["error"], htmlspecialchars($_GET["error_description"]));
+          return $this->error;
+        } else {
+          // If we don't have an authorization code then get one
+          header('Location: '.$provider->getAuthorizationUrl());
+          exit;
+        }
 
       } else {
         // Try to get an access token (using the authorization code grant)
