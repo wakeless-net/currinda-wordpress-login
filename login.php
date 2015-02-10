@@ -273,7 +273,7 @@ class CurrindaLogin {
       'redirectUri'   =>  $return_url,
       'url_authorize' => $url."api/authorize",
       "url_access_token"=> $url."api/token",
-      "url_user_details" => $url."api/".strtr($this->scope, array("-" => "/"))
+      "url_user_details" => $url."api/".strtr(strtolower($this->scope), array("-" => "/"))
     ));
   }
 
