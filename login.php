@@ -181,7 +181,8 @@ class CurrindaLogin {
           $this->setup_user_or_login($details);
 
         } catch (Exception $e) {
-          throw $e;
+          $this->error = new WP_Error("404", "Unfortunately you do not have a membership.");
+          return $this->error;
         }
       }
     }
@@ -266,6 +267,14 @@ class CurrindaLogin {
   function provider() {
     $return_url = site_url()."?option=currinda_user_login";
     $url = "https://$this->domain/";
+
+    $scope = explode("-", $this->scope);
+    if($scope[0] == "event" ) {
+      $details_url = $url."api/".strtr(strtolower($this->scope), array("-" => "/"));
+    } else {
+      $details_url = $url."api/organisation/$scope[1]";
+    }
+
     return new League\OAuth2\Client\Provider\CurrindaProvider(array(
       'clientId'  =>  $this->client_id,
       'clientSecret'  =>  $this->client_secret,
@@ -273,7 +282,7 @@ class CurrindaLogin {
       'redirectUri'   =>  $return_url,
       'url_authorize' => $url."api/authorize",
       "url_access_token"=> $url."api/token",
-      "url_user_details" => $url."api/".strtr(strtolower($this->scope), array("-" => "/"))
+      "url_user_details" => $details_url
     ));
   }
 
