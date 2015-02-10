@@ -21,7 +21,7 @@ This user will have the subscriber role if considered a valid (unexpired) user i
 it is not it will have the subscriber role removed.
 
 Use an access control plugin such as: https://wordpress.org/plugins/wordpress-access-control/ for controlling
-access only to logged in users.
+access only to logged in users. Redirect users to a page with either the shortcode or the widget on it to have them login.
 
 
 You can also use PHP code in any template which will provide an object with the representation of data
@@ -39,6 +39,17 @@ described here: http://currinda.com/support/api/v0.1.html
 3. Go to `Settings > Currinda Login`, and follow the instructions.
 4. Add the Currinda Login widget to a menu or sidebar in Appearance > Widgets
 5. Now visit your site and you will see the login form section.
+
+### Widget ###
+
+The widget can be dragged into any sidebar and has configurable text, the title will become the body of the link.
+
+### ShortCode ###
+
+The shortcode can be used anywhere and is specified as follows:
+
+    [currinda-login class='btn btn-default']Text within link[/currinda-login]
+
 
 == Support ==
 
