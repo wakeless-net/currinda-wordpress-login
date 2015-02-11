@@ -220,7 +220,7 @@ class CurrindaLogin {
   function check_valid_record($details) {
     if(stripos($this->scope, "event") === 0) {
       return !!$details->Checked;
-    } elseif(stripos($this->scope, "organisation") === 0) {
+    } elseif(stripos($this->scope, "org") === 0) {
       return !$details->Membership->Expired;
     } else {
       return false;
