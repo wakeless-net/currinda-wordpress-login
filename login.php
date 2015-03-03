@@ -115,17 +115,8 @@ class CurrindaLogin {
 	function login_help(){ ?>
 		<p><font color="#FF0000"><strong>Note*</strong></font>
 			    <br />
-		      You need create a new facebook API Applitation to setup this plugin. Please follow the instructions provided below.
-			</p>
-			  <p>
-			  <strong>1.</strong> Go to <a href="https://developers.facebook.com/" target="_blank">https://developers.facebook.com/</a> <br /><br />
-			  <strong>2.</strong> Click on Create a new app button. A popup will open.<br /><br />
-              <strong>3.</strong> Add the required informations and don't forget to make your app live. This is very important otherwise your app will not work for all users.<br /><br />
-			  <strong>4.</strong> Then Click the "Create App" button and follow the instructions, your new app will be created. <br /><br />
-			  <strong>5.</strong> Copy and Paste "App ID" and "App Secret" here. <br /><br />
-			  <strong>6.</strong> That's All. Have fun :)
-			  </p>
-			  
+          You need to have a Client ID and Client Secret created by your Currinda administrator.
+        </p>
 	<?php }
 	
 	
@@ -220,7 +211,7 @@ class CurrindaLogin {
   function check_valid_record($details) {
     if(stripos($this->scope, "event") === 0) {
       return !!$details->Checked;
-    } elseif(stripos($this->scope, "org") === 0) {
+    } elseif(stripos(strtolower($this->scope), "org") === 0) {
       return !$details->Membership->Expired;
     } else {
       return false;
