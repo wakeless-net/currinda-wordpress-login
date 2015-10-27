@@ -58,7 +58,7 @@ class CurrindaLogin {
 		$this->client_id = get_option('currinda_client_id');
 		$this->client_secret = get_option('currinda_client_secret');
     $this->domain = get_option("currinda_client_domain");
-    $this->scope = get_option("currinda_client_scope");
+    $this->scope = intval(get_option("currinda_client_scope"));
   }
 
 	function menu_item () {
@@ -163,12 +163,10 @@ class CurrindaLogin {
 
         $this->save_token($token);
 
-
         // Optional: Now you have a token you can look up a users profile data
         try {
           // We got an access token, let's now get the user's details
           $details = $provider->getUserDetails($token);
-
           $this->setup_user_or_login($details);
 
         } catch (Exception $e) {
@@ -209,20 +207,31 @@ class CurrindaLogin {
 
 
   function check_valid_record($details) {
-    if(stripos($this->scope, "event") === 0) {
+      
+      if (is_null($details->Membership)) {
+          return false;
+      }
+      
+      if ($details->Membership->Checked && !$details->Membership->Expired) {
+          return true;
+      }
+      
+      return false;
+      
+    /* if(stripos($this->scope, "event") === 0) {
       return !!$details->Checked;
-    } elseif(stripos(strtolower($this->scope), "org") === 0) {
+    } else if(stripos(strtolower($this->scope), "org") === 0) {
       return !$details->Membership->Expired;
     } else {
       return false;
-    }
+    } */
   }
 
   function setup_user_or_login($details) {
     $user_email = $details->Email;
     $full_name = $details->FirstName." ".$details->LastName;
 
-    $status = $details->Checked;
+    /* $status = $details->Checked; */
 
     $valid = $this->check_valid_record($details);
 
@@ -253,26 +262,29 @@ class CurrindaLogin {
     wp_set_auth_cookie( $user_id, true );
      
     wp_redirect( site_url() );
+    exit(0);
   }
 
   function provider() {
     $return_url = site_url()."?option=currinda_user_login";
     $url = "https://$this->domain/";
+    $version = "v2";
 
-    $scope = explode("-", $this->scope);
-    if($scope[0] == "event" ) {
-      $details_url = $url."api/".strtr(strtolower($this->scope), array("-" => "/"));
-    } else {
-      $details_url = $url."api/organisation/$scope[1]";
-    }
+    /* REMOVE PREVIOUS EVENT HANDLING
+     * $scope = explode("-", $this->scope);
+     * if($scope[0] == "event" ) {
+      $details_url = $url."api/$version/".strtr(strtolower($this->scope), array("-" => "/"));
+    } else { */
+    $details_url = $url."api/$version/organisation/$this->scope/user";
+    /* } */
 
     return new League\OAuth2\Client\Provider\CurrindaProvider(array(
       'clientId'  =>  $this->client_id,
       'clientSecret'  =>  $this->client_secret,
-      "scopes" => [$this->scope],
+      "scopes" => ["user"], /* ["org-$this->scope"], */
       'redirectUri'   =>  $return_url,
-      'url_authorize' => $url."api/authorize",
-      "url_access_token"=> $url."api/token",
+      'url_authorize' => $url."api/$version/organisation/$this->scope/authorize",
+      "url_access_token"=> $url."api/$version/organisation/$this->scope/token",
       "url_user_details" => $details_url
     ));
   }
