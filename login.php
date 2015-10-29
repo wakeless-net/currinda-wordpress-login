@@ -217,7 +217,11 @@ class CurrindaLogin {
   }
   
   function is_a_standard_member($details) {
-      if (!$this->has_expiry_date_past($details->Membership->ExpiryDate) && $details->Membership->Checked && !$details->Membership->Expired) {
+      if (!$this->has_expiry_date_past($details->Membership->ExpiryDate) && 
+              //($details->Membership->Status !== "outstanding") && 
+              ($details->Membership->Status !== "unapproved") && 
+              $details->Membership->Checked && 
+              !$details->Membership->Expired) {
           return true;
       }
       return false;
@@ -227,8 +231,12 @@ class CurrindaLogin {
   function is_a_corp_member($details) {
       // Check each corporate member individually - if one is valid, then is one of these
       foreach ($details->CorporateMemberships as $corp_member) {
-          if (!$this->has_expiry_date_past($corp_member->ExpiryDate) && !$corp_member->Expired) {
-              return true;
+          if (!$this->has_expiry_date_past($corp_member->ExpiryDate) && 
+                //($corp_member->Status !== "outstanding") && 
+                ($corp_member->Status !== "unapproved") && 
+                $corp_member->Checked &&
+                !$corp_member->Expired) {
+            return true;
           }
       }
       return false;
@@ -255,7 +263,7 @@ class CurrindaLogin {
     $valid = $this->check_valid_record($details);
 
     if( email_exists( $user_email )) { // user is a member 
-      $user = get_user_by('login', $user_email );
+      $user = get_user_by('email', $user_email );
       $user_id = $user->ID;
     } else { // this user is a guest
       $random_password = wp_generate_password( 10, false );
@@ -267,9 +275,9 @@ class CurrindaLogin {
         'display_name' => $full_name
       ));
       update_user_meta($user_id, 'nickname', $full_name);
+      
+      $user = new WP_User($user_id);
     }
-
-    $user = new WP_User($user_id);
 
     if($valid) {
         $user->add_role("subscriber");
@@ -277,7 +285,9 @@ class CurrindaLogin {
         $user->remove_role("subscriber");
     }
 
+    wp_set_current_user( $user_id, $user->user_login );
     wp_set_auth_cookie( $user_id, true );
+    do_action( 'wp_login', $user->user_login );
      
     wp_redirect( site_url() );
     exit(0);
