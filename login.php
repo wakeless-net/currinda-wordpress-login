@@ -205,36 +205,54 @@ class CurrindaLogin {
     return $provider->getUserDetails($token);
   }
 
-
-  function check_valid_record($details) {
-      
-      if (is_null($details->Membership)) {
-          return false;
-      }
-      
-      if ($details->Membership->Checked && !$details->Membership->Expired) {
+  
+  function has_expiry_date_past($expiry_date) {
+      $timezone = new DateTimeZone(date_default_timezone_get());
+      $expiry_date = new DateTime($expiry_date, $timezone);
+      $curr = new DateTime("now", $timezone);
+      if ($expiry_date < $curr) {
           return true;
       }
-      
       return false;
-      
-    /* if(stripos($this->scope, "event") === 0) {
-      return !!$details->Checked;
-    } else if(stripos(strtolower($this->scope), "org") === 0) {
-      return !$details->Membership->Expired;
-    } else {
+  }
+  
+  function is_a_standard_member($details) {
+      if (!$this->has_expiry_date_past($details->Membership->ExpiryDate) && $details->Membership->Checked && !$details->Membership->Expired) {
+          return true;
+      }
       return false;
-    } */
+  }
+  
+  
+  function is_a_corp_member($details) {
+      // Check each corporate member individually - if one is valid, then is one of these
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if (!$this->has_expiry_date_past($corp_member->ExpiryDate) && !$corp_member->Expired) {
+              return true;
+          }
+      }
+      return false;
+  }
+
+//   function is_a_sub_member($details) {
+//       return false;
+//   }
+
+  function check_valid_record($details) {
+      // We need to check the different types of membership (standard, corporate, committee, sub-member)
+      if ($this->is_a_standard_member($details)) { return true; }
+      if ($this->is_a_corp_member($details)) { return true; }
+      //if ($this->is_a_sub_member($details)) { return true; }
+      
+      // If none of these memberships are valid, this user is not valid
+      return false;
   }
 
   function setup_user_or_login($details) {
     $user_email = $details->Email;
     $full_name = $details->FirstName." ".$details->LastName;
 
-    /* $status = $details->Checked; */
-
     $valid = $this->check_valid_record($details);
-
 
     if( email_exists( $user_email )) { // user is a member 
       $user = get_user_by('login', $user_email );
@@ -254,9 +272,9 @@ class CurrindaLogin {
     $user = new WP_User($user_id);
 
     if($valid) {
-      $user->add_role("subscriber");
+        $user->add_role("subscriber");
     } else {
-      $user->remove_role("subscriber");
+        $user->remove_role("subscriber");
     }
 
     wp_set_auth_cookie( $user_id, true );
