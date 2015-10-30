@@ -47,18 +47,73 @@ class CurrindaLogin {
     if($this->error) {
       $output .= "<div class='error_wid_login'>Error: {$this->error->get_error_message()}</div>";
     }
-
+    
     $output .= "<a class='{$a["class"]}' href='$this->url?option=currinda_user_login'>$content</a>";
-
+    
+    $inactive_url = get_option('currinda_inactive_url');
+    $expired_url = get_option('currinda_expired_url');
+    $outstanding_url = get_option('currinda_outstanding_url');
+    
+    $user_id = wp_get_current_user()->ID;
+    $details = get_user_meta($user_id, 'currinda_membership', true);
+    if ($details) {
+        if ($this->is_unapproved($details)) {
+            $output .= "<p>Your membership is not yet active yet. <a href='" . $inactive_url . "'>Contact the member administrator to get them to approve your account.</a></p>";
+        } else if ($this->has_expired($details)) {
+            $output .= "<p>The current membership has expired. <a href='" . $expired_url . "'>Click here to renew.</a></p>";
+        } else if ($this->is_overdue($details)) {
+            $output .= "<p>Your membership fees are outstanding. <a href='" . $outstanding_url . "'>Click here to make a payment.</a></p>";
+        }
+    }
+    
     return $output;
 
   }
+  
+  function has_expired($details) {
+      if ($details->Membership->Expired) {
+          return true;
+      }
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if ($corp_member->Expired) {
+              return true;
+          }
+      }
+      return false;
+  }
 
+  function is_unapproved($details) {
+      if ($details->Membership->Status === 'unapproved') {
+          return true;
+      }
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if ($corp_member->Status === 'unapproved') {
+              return true;
+          }
+      }
+      return false;
+  }
+
+  function is_overdue($details) {
+      if ($details->Membership->Status === 'outstanding') {
+          return true;
+      }
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if ($corp_member->Status === 'outstanding') {
+              return true;
+          }
+      }
+      return false;
+  }
+  
   function update_variables() {
 		$this->client_id = get_option('currinda_client_id');
 		$this->client_secret = get_option('currinda_client_secret');
     $this->domain = get_option("currinda_client_domain");
     $this->scope = intval(get_option("currinda_client_scope"));
+		$this->inactive_url = get_option('currinda_inactive_url');
+    $this->expired_url = get_option('currinda_expired_url');
+    $this->outstanding_url = get_option('currinda_outstanding_url');
   }
 
 	function menu_item () {
@@ -96,6 +151,27 @@ class CurrindaLogin {
 			  <td><input type="text" name="currinda_client_scope" value="<?php echo $this->scope;?>" /></td>
 		  </tr>
 		  <tr>
+        <td colspan="2">&nbsp;</td>
+		  </tr>
+		  <tr>
+        <td><p><strong>Inactive membership URL:</strong></p>
+            <p>Users will be redirected to this path when their membership hasn't yet been activated yet.</p>
+            <p><i>e.g. http://yourdomain.com/contact</i></p></td>
+			  <td style="vertical-align:top"><input type="text" name="currinda_inactive_url" value="<?php echo $this->inactive_url;?>" size="80" /></td>
+		  </tr>
+		  <tr>
+        <td><p><strong>Expired membership URL:</strong></p>
+            <p>Users will be redirected to this path when their membership has expired.</p>
+            <p><i>e.g. https://<?php echo isset($this->domain) ? $this->domain : 'org.currinda.com' ?>/organisation/<?php echo isset($this->scope) ? $this->scope : '123' ?>/view</i></p></td>
+        <td style="vertical-align:top"><input type="text" name="currinda_expired_url" value="<?php echo $this->expired_url;?>" size="80" /></td>
+		  </tr>
+		  <tr>
+        <td><p><strong>Outstanding membership URL:</strong></p>
+            <p>Users will be redirected to this path when their membership has expired.</p>
+            <p><i>e.g. https://<?php echo isset($this->domain) ? $this->domain : 'org.currinda.com' ?>/organisation/<?php echo isset($this->scope) ? $this->scope : '123' ?>/view</i></p></td>
+        <td style="vertical-align:top"><input type="text" name="currinda_outstanding_url" value="<?php echo $this->outstanding_url;?>" size="80" /></td>
+		  </tr>
+		  <tr>
         <td>&nbsp;</td>
         <td><input type="submit" name="submit" value="Save" class="button button-primary button-large" /></td>
 		  </tr>
@@ -126,7 +202,10 @@ class CurrindaLogin {
 			update_option( 'currinda_client_secret', $_POST['currinda_client_secret'] );
 			update_option( 'currinda_client_domain', $_POST['currinda_client_domain'] );
 			update_option( 'currinda_client_scope', $_POST['currinda_client_scope'] );
-
+			update_option( 'currinda_inactive_url', $_POST['currinda_inactive_url'] );
+			update_option( 'currinda_expired_url', $_POST['currinda_expired_url'] );
+			update_option( 'currinda_outstanding_url', $_POST['currinda_outstanding_url'] );
+				
       $this->update_variables();
 		}
 	}
@@ -278,6 +357,9 @@ class CurrindaLogin {
       
       $user = new WP_User($user_id);
     }
+    
+    // Persist the membership data into the user metadata table
+    update_user_meta($user_id, 'currinda_membership', $details);
 
     if($valid) {
         $user->add_role("subscriber");
@@ -288,7 +370,7 @@ class CurrindaLogin {
     wp_set_current_user( $user_id, $user->user_login );
     wp_set_auth_cookie( $user_id, true );
     do_action( 'wp_login', $user->user_login );
-     
+    
     wp_redirect( site_url() );
     exit(0);
   }
