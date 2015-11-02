@@ -321,15 +321,23 @@ class CurrindaLogin {
       return false;
   }
 
-//   function is_a_sub_member($details) {
-//       return false;
-//   }
+  function is_a_sub_member($details) {
+      if (!isset($details->Membership->Parent)) { return false; }
+      if (!$this->has_expiry_date_past($details->Membership->Parent->ExpiryDate) && 
+              //($details->Membership->Status !== "outstanding") && 
+              ($details->Membership->Parent->Status !== "unapproved") && 
+              $details->Membership->Parent->Checked && 
+              !$details->Membership->Parent->Expired) {
+          return true;
+      }
+      return false;
+  }
 
   function check_valid_record($details) {
       // We need to check the different types of membership (standard, corporate, committee, sub-member)
       if ($this->is_a_standard_member($details)) { return true; }
       if ($this->is_a_corp_member($details)) { return true; }
-      //if ($this->is_a_sub_member($details)) { return true; }
+      if ($this->is_a_sub_member($details)) { return true; }
       
       // If none of these memberships are valid, this user is not valid
       return false;
