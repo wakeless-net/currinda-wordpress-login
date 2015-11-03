@@ -3,7 +3,7 @@
 Plugin Name: Currinda Login Widget
 Plugin URI: http://currinda.com/wordpress.html
 Description: This is a Currinda login widget
-Version: 0.1
+Version: 0.2
 Author: currinda
 Author URI: http://currinda.com/
 */
@@ -28,9 +28,10 @@ class CurrindaLogin {
 	
 	function __construct() {
 		add_action( 'admin_menu', array( $this, 'menu_item' ) );
-		add_action( 'admin_init',  array( $this, 'save_settings' ) );
 		add_action( 'plugins_loaded',  array( $this, 'widget_text_domain' ) );
-    add_action( 'init', array( $this, 'login_validate' ) );
+		add_action( 'admin_init', array( $this, 'check_version' ) );
+		add_action( 'admin_init', array( $this, 'save_settings' ) );
+		add_action( 'init', array( $this, 'login_validate' ) );
     add_shortcode("currinda-login", array($this, "handle_shortcode"));
 
 
@@ -47,18 +48,73 @@ class CurrindaLogin {
     if($this->error) {
       $output .= "<div class='error_wid_login'>Error: {$this->error->get_error_message()}</div>";
     }
-
+    
     $output .= "<a class='{$a["class"]}' href='$this->url?option=currinda_user_login'>$content</a>";
-
+    
+    $inactive_url = get_option('currinda_inactive_url');
+    $expired_url = get_option('currinda_expired_url');
+    $outstanding_url = get_option('currinda_outstanding_url');
+    
+    $user_id = wp_get_current_user()->ID;
+    $details = get_user_meta($user_id, 'currinda_membership', true);
+    if ($details) {
+        if ($this->is_unapproved($details)) {
+            $output .= "<p>Your membership is not yet active yet. <a href='" . $inactive_url . "'>Contact the member administrator to get them to approve your account.</a></p>";
+        } else if ($this->has_expired($details)) {
+            $output .= "<p>The current membership has expired. <a href='" . $expired_url . "'>Click here to renew.</a></p>";
+        } else if ($this->is_overdue($details)) {
+            $output .= "<p>Your membership fees are outstanding. <a href='" . $outstanding_url . "'>Click here to make a payment.</a></p>";
+        }
+    }
+    
     return $output;
 
   }
+  
+  function has_expired($details) {
+      if ($details->Membership->Expired) {
+          return true;
+      }
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if ($corp_member->Expired) {
+              return true;
+          }
+      }
+      return false;
+  }
 
+  function is_unapproved($details) {
+      if ($details->Membership->Status === 'unapproved') {
+          return true;
+      }
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if ($corp_member->Status === 'unapproved') {
+              return true;
+          }
+      }
+      return false;
+  }
+
+  function is_overdue($details) {
+      if ($details->Membership->Status === 'outstanding') {
+          return true;
+      }
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if ($corp_member->Status === 'outstanding') {
+              return true;
+          }
+      }
+      return false;
+  }
+  
   function update_variables() {
 		$this->client_id = get_option('currinda_client_id');
 		$this->client_secret = get_option('currinda_client_secret');
     $this->domain = get_option("currinda_client_domain");
-    $this->scope = get_option("currinda_client_scope");
+    $this->scope = intval(get_option("currinda_client_scope"));
+		$this->inactive_url = get_option('currinda_inactive_url');
+    $this->expired_url = get_option('currinda_expired_url');
+    $this->outstanding_url = get_option('currinda_outstanding_url');
   }
 
 	function menu_item () {
@@ -96,6 +152,27 @@ class CurrindaLogin {
 			  <td><input type="text" name="currinda_client_scope" value="<?php echo $this->scope;?>" /></td>
 		  </tr>
 		  <tr>
+        <td colspan="2">&nbsp;</td>
+		  </tr>
+		  <tr>
+        <td><p><strong>Inactive membership URL:</strong></p>
+            <p>Users will be redirected to this path when their membership hasn't yet been activated yet.</p>
+            <p><i>e.g. http://yourdomain.com/contact</i></p></td>
+			  <td style="vertical-align:top"><input type="text" name="currinda_inactive_url" value="<?php echo $this->inactive_url;?>" size="80" /></td>
+		  </tr>
+		  <tr>
+        <td><p><strong>Expired membership URL:</strong></p>
+            <p>Users will be redirected to this path when their membership has expired.</p>
+            <p><i>e.g. https://<?php echo isset($this->domain) ? $this->domain : 'org.currinda.com' ?>/organisation/<?php echo isset($this->scope) ? $this->scope : '123' ?>/view</i></p></td>
+        <td style="vertical-align:top"><input type="text" name="currinda_expired_url" value="<?php echo $this->expired_url;?>" size="80" /></td>
+		  </tr>
+		  <tr>
+        <td><p><strong>Outstanding membership URL:</strong></p>
+            <p>Users will be redirected to this path when their membership has expired.</p>
+            <p><i>e.g. https://<?php echo isset($this->domain) ? $this->domain : 'org.currinda.com' ?>/organisation/<?php echo isset($this->scope) ? $this->scope : '123' ?>/view</i></p></td>
+        <td style="vertical-align:top"><input type="text" name="currinda_outstanding_url" value="<?php echo $this->outstanding_url;?>" size="80" /></td>
+		  </tr>
+		  <tr>
         <td>&nbsp;</td>
         <td><input type="submit" name="submit" value="Save" class="button button-primary button-large" /></td>
 		  </tr>
@@ -110,6 +187,44 @@ class CurrindaLogin {
 	
 	function widget_text_domain(){
 		load_plugin_textdomain('clw', FALSE, basename( dirname( __FILE__ ) ) .'/languages');
+	}
+
+	
+	// Borrowed from WP 4.3.1
+	function currinda_get_home_path() {
+	    $home    = set_url_scheme( get_option( 'home' ), 'http' );
+	    $siteurl = set_url_scheme( get_option( 'siteurl' ), 'http' );
+	    if ( ! empty( $home ) && 0 !== strcasecmp( $home, $siteurl ) ) {
+	        $wp_path_rel_to_home = str_ireplace( $home, '', $siteurl ); /* $siteurl - $home */
+	        $pos = strripos( str_replace( '\\', '/', $_SERVER['SCRIPT_FILENAME'] ), trailingslashit( $wp_path_rel_to_home ) );
+	        $home_path = substr( $_SERVER['SCRIPT_FILENAME'], 0, $pos );
+	        $home_path = trailingslashit( $home_path );
+	    } else {
+	        $home_path = ABSPATH;
+	    }
+	
+	    return str_replace( '\\', '/', $home_path );
+	}
+	
+	function check_version() {
+	    $plugin_path = $this->currinda_get_home_path() . '/wp-content/plugins/currinda-wordpress-login/login.php';
+	    $plugin_data = get_plugin_data($plugin_path);
+	    $plugin_version = $plugin_data['Version'];
+	    $existing_version = get_option('currinda_version', 'NONE');
+      if ($existing_version === 'NONE') {
+          // Migrate from v0.1 to v0.2 - extract out the scope org ID from "org-123" to just "123" (ignore "event-456")
+          $old_scope = get_option('currinda_client_scope');
+          if (stripos(strtolower($old_scope), 'org-') == 0) { 
+              
+              // Get the org ID
+              $org_id = intval(explode("-", $old_scope)[1]);
+            
+              // Save the new scope with just the integer value
+              update_option('currinda_client_scope', $org_id);
+          }
+
+          update_option('currinda_version', $plugin_version);
+      } 	    
 	}
 	
 	function login_help(){ ?>
@@ -126,7 +241,10 @@ class CurrindaLogin {
 			update_option( 'currinda_client_secret', $_POST['currinda_client_secret'] );
 			update_option( 'currinda_client_domain', $_POST['currinda_client_domain'] );
 			update_option( 'currinda_client_scope', $_POST['currinda_client_scope'] );
-
+			update_option( 'currinda_inactive_url', $_POST['currinda_inactive_url'] );
+			update_option( 'currinda_expired_url', $_POST['currinda_expired_url'] );
+			update_option( 'currinda_outstanding_url', $_POST['currinda_outstanding_url'] );
+				
       $this->update_variables();
 		}
 	}
@@ -163,12 +281,10 @@ class CurrindaLogin {
 
         $this->save_token($token);
 
-
         // Optional: Now you have a token you can look up a users profile data
         try {
           // We got an access token, let's now get the user's details
           $details = $provider->getUserDetails($token);
-
           $this->setup_user_or_login($details);
 
         } catch (Exception $e) {
@@ -207,28 +323,73 @@ class CurrindaLogin {
     return $provider->getUserDetails($token);
   }
 
+  
+  function has_expiry_date_past($expiry_date) {
+      $timezone = new DateTimeZone(date_default_timezone_get());
+      $expiry_date = new DateTime($expiry_date, $timezone);
+      $curr = new DateTime("now", $timezone);
+      if ($expiry_date < $curr) {
+          return true;
+      }
+      return false;
+  }
+  
+  function is_a_standard_member($details) {
+      if (!$this->has_expiry_date_past($details->Membership->ExpiryDate) && 
+              //($details->Membership->Status !== "outstanding") && 
+              ($details->Membership->Status !== "unapproved") && 
+              $details->Membership->Checked && 
+              !$details->Membership->Expired) {
+          return true;
+      }
+      return false;
+  }
+  
+  
+  function is_a_corp_member($details) {
+      // Check each corporate member individually - if one is valid, then is one of these
+      foreach ($details->CorporateMemberships as $corp_member) {
+          if (!$this->has_expiry_date_past($corp_member->ExpiryDate) && 
+                //($corp_member->Status !== "outstanding") && 
+                ($corp_member->Status !== "unapproved") && 
+                $corp_member->Checked &&
+                !$corp_member->Expired) {
+            return true;
+          }
+      }
+      return false;
+  }
+
+  function is_a_sub_member($details) {
+      if (!isset($details->Membership->Parent)) { return false; }
+      if (!$this->has_expiry_date_past($details->Membership->Parent->ExpiryDate) && 
+              //($details->Membership->Status !== "outstanding") && 
+              ($details->Membership->Parent->Status !== "unapproved") && 
+              $details->Membership->Parent->Checked && 
+              !$details->Membership->Parent->Expired) {
+          return true;
+      }
+      return false;
+  }
 
   function check_valid_record($details) {
-    if(stripos($this->scope, "event") === 0) {
-      return !!$details->Checked;
-    } elseif(stripos(strtolower($this->scope), "org") === 0) {
-      return !$details->Membership->Expired;
-    } else {
+      // We need to check the different types of membership (standard, corporate, committee, sub-member)
+      if ($this->is_a_standard_member($details)) { return true; }
+      if ($this->is_a_corp_member($details)) { return true; }
+      if ($this->is_a_sub_member($details)) { return true; }
+      
+      // If none of these memberships are valid, this user is not valid
       return false;
-    }
   }
 
   function setup_user_or_login($details) {
     $user_email = $details->Email;
     $full_name = $details->FirstName." ".$details->LastName;
 
-    $status = $details->Checked;
-
     $valid = $this->check_valid_record($details);
 
-
     if( email_exists( $user_email )) { // user is a member 
-      $user = get_user_by('login', $user_email );
+      $user = get_user_by('email', $user_email );
       $user_id = $user->ID;
     } else { // this user is a guest
       $random_password = wp_generate_password( 10, false );
@@ -240,39 +401,47 @@ class CurrindaLogin {
         'display_name' => $full_name
       ));
       update_user_meta($user_id, 'nickname', $full_name);
+      
+      $user = new WP_User($user_id);
     }
-
-    $user = new WP_User($user_id);
+    
+    // Persist the membership data into the user metadata table
+    update_user_meta($user_id, 'currinda_membership', $details);
 
     if($valid) {
-      $user->add_role("subscriber");
+        $user->add_role("subscriber");
     } else {
-      $user->remove_role("subscriber");
+        $user->remove_role("subscriber");
     }
 
+    wp_set_current_user( $user_id, $user->user_login );
     wp_set_auth_cookie( $user_id, true );
-     
+    do_action( 'wp_login', $user->user_login );
+    
     wp_redirect( site_url() );
+    exit(0);
   }
 
   function provider() {
     $return_url = site_url()."?option=currinda_user_login";
     $url = "https://$this->domain/";
+    $version = "v2";
 
-    $scope = explode("-", $this->scope);
-    if($scope[0] == "event" ) {
-      $details_url = $url."api/".strtr(strtolower($this->scope), array("-" => "/"));
-    } else {
-      $details_url = $url."api/organisation/$scope[1]";
-    }
+    /* REMOVE PREVIOUS EVENT HANDLING
+     * $scope = explode("-", $this->scope);
+     * if($scope[0] == "event" ) {
+      $details_url = $url."api/$version/".strtr(strtolower($this->scope), array("-" => "/"));
+    } else { */
+    $details_url = $url."api/$version/organisation/$this->scope/user";
+    /* } */
 
     return new League\OAuth2\Client\Provider\CurrindaProvider(array(
       'clientId'  =>  $this->client_id,
       'clientSecret'  =>  $this->client_secret,
-      "scopes" => [$this->scope],
+      "scopes" => ["user"], /* ["org-$this->scope"], */
       'redirectUri'   =>  $return_url,
-      'url_authorize' => $url."api/authorize",
-      "url_access_token"=> $url."api/token",
+      'url_authorize' => $url."api/$version/organisation/$this->scope/authorize",
+      "url_access_token"=> $url."api/$version/organisation/$this->scope/token",
       "url_user_details" => $details_url
     ));
   }
