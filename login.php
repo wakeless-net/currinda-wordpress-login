@@ -3,7 +3,7 @@
 Plugin Name: Currinda Login Widget
 Plugin URI: http://currinda.com/wordpress.html
 Description: This is a Currinda login widget
-Version: 0.1
+Version: 0.2
 Author: currinda
 Author URI: http://currinda.com/
 */
@@ -28,9 +28,10 @@ class CurrindaLogin {
 	
 	function __construct() {
 		add_action( 'admin_menu', array( $this, 'menu_item' ) );
-		add_action( 'admin_init',  array( $this, 'save_settings' ) );
 		add_action( 'plugins_loaded',  array( $this, 'widget_text_domain' ) );
-    add_action( 'init', array( $this, 'login_validate' ) );
+		add_action( 'admin_init', array( $this, 'check_version' ) );
+		add_action( 'admin_init', array( $this, 'save_settings' ) );
+		add_action( 'init', array( $this, 'login_validate' ) );
     add_shortcode("currinda-login", array($this, "handle_shortcode"));
 
 
@@ -186,6 +187,27 @@ class CurrindaLogin {
 	
 	function widget_text_domain(){
 		load_plugin_textdomain('clw', FALSE, basename( dirname( __FILE__ ) ) .'/languages');
+	}
+
+	function check_version() {
+	    $plugin_path = get_home_path() . '/wp-content/plugins/currinda-wordpress-login/login.php';
+	    $plugin_data = get_plugin_data($plugin_path);
+	    $plugin_version = $plugin_data['Version'];
+	    $existing_version = get_option('currinda_version', 'NONE');
+      if ($existing_version === 'NONE') {
+          // Migrate from v0.1 to v0.2 - extract out the scope org ID from "org-123" to just "123" (ignore "event-456")
+          $old_scope = get_option('currinda_client_scope');
+          if (stripos(strtolower($old_scope), 'org-') == 0) { 
+              
+              // Get the org ID
+              $org_id = intval(explode("-", $old_scope)[1]);
+            
+              // Save the new scope with just the integer value
+              update_option('currinda_client_scope', $org_id);
+          }
+
+          update_option('currinda_version', $plugin_version);
+      } 	    
 	}
 	
 	function login_help(){ ?>
