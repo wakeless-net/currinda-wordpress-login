@@ -319,7 +319,6 @@ class CurrindaLogin {
   
   function is_a_standard_member($details) {
       if (!$this->has_expiry_date_past($details->Membership->ExpiryDate) && 
-              //($details->Membership->Status !== "outstanding") && 
               ($details->Membership->Status !== "unapproved") && 
               $details->Membership->Checked && 
               !$details->Membership->Expired) {
@@ -333,7 +332,6 @@ class CurrindaLogin {
       // Check each corporate member individually - if one is valid, then is one of these
       foreach ($details->CorporateMemberships as $corp_member) {
           if (!$this->has_expiry_date_past($corp_member->ExpiryDate) && 
-                //($corp_member->Status !== "outstanding") && 
                 ($corp_member->Status !== "unapproved") && 
                 $corp_member->Checked &&
                 !$corp_member->Expired) {
@@ -346,7 +344,6 @@ class CurrindaLogin {
   function is_a_sub_member($details) {
       if (!isset($details->Membership->Parent)) { return false; }
       if (!$this->has_expiry_date_past($details->Membership->Parent->ExpiryDate) && 
-              //($details->Membership->Status !== "outstanding") && 
               ($details->Membership->Parent->Status !== "unapproved") && 
               $details->Membership->Parent->Checked && 
               !$details->Membership->Parent->Expired) {
@@ -410,18 +407,12 @@ class CurrindaLogin {
     $url = "https://$this->domain/";
     $version = "v2";
 
-    /* REMOVE PREVIOUS EVENT HANDLING
-     * $scope = explode("-", $this->scope);
-     * if($scope[0] == "event" ) {
-      $details_url = $url."api/$version/".strtr(strtolower($this->scope), array("-" => "/"));
-    } else { */
     $details_url = $url."api/$version/organisation/$this->scope/user";
-    /* } */
 
     return new League\OAuth2\Client\Provider\CurrindaProvider(array(
       'clientId'  =>  $this->client_id,
       'clientSecret'  =>  $this->client_secret,
-      "scopes" => ["user"], /* ["org-$this->scope"], */
+      "scopes" => ["user"], 
       'redirectUri'   =>  $return_url,
       'url_authorize' => $url."api/$version/organisation/$this->scope/authorize",
       "url_access_token"=> $url."api/$version/organisation/$this->scope/token",
