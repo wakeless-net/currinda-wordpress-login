@@ -46,11 +46,12 @@ class CurrindaLoginWidget extends WP_Widget {
 		global $post;
 		$this->error_message();
 		if(!is_user_logged_in()){
+		    //<?php echo $this->url; ?option=currinda_user_login
 		?>
-      <a href='<?php echo $this->url; ?>?option=currinda_user_login'><?php echo $title ? $title : "Login with Currinda" ?></a>
+      <a href='javascript:currinda_login()'><?php echo $title ? $title : "Login with Currinda" ?></a>
 		<?php 
 		} else {
-		global $current_user;
+		  global $current_user;
      	get_currentuserinfo();
 		$link_with_username = __('Howdy,','clw')." ".$current_user->display_name;
 		?>

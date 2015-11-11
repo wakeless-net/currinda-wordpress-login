@@ -17,6 +17,8 @@ use \League\OAuth2\Client\Token\AccessToken;
 class CurrindaLogin {
   protected $client_id, $client_secret, $domain, $scope;
 
+  const CURRINDA_VERSION = "0.2";
+  
   static protected $instance = null;
   static function instance() {
     if(!self::$instance) {
@@ -33,23 +35,27 @@ class CurrindaLogin {
 		add_action( 'admin_init', array( $this, 'save_settings' ) );
 		add_action( 'init', array( $this, 'login_validate' ) );
     add_shortcode("currinda-login", array($this, "handle_shortcode"));
-
+    add_action( 'wp_enqueue_scripts', array($this, 'currinda_scripts') );
 
     $this->update_variables();
 	}
 
+	function currinda_scripts() {
+	    wp_register_script( 'currinda', plugins_url( '/inc/js/currinda.js', __FILE__ ), array(), CURRINDA_VERSION, true);
+	    wp_enqueue_script( 'currinda' );
+	}
+	
   function handle_shortcode($attrs, $content) {
     $a = shortcode_atts( array(
       'class' => '',
     ), $atts );
 
-
-    $output = "";
+    $output = "<div class='currinda'>";
     if($this->error) {
       $output .= "<div class='error_wid_login'>Error: {$this->error->get_error_message()}</div>";
     }
     
-    $output .= "<a class='{$a["class"]}' href='$this->url?option=currinda_user_login'>$content</a>";
+    $output .= "<a class='{$a["class"]}' href='javascript:currinda_login()'>$content</a>"; //$this->url?option=currinda_user_login
     
     $inactive_url = get_option('currinda_inactive_url');
     $expired_url = get_option('currinda_expired_url');
@@ -66,6 +72,7 @@ class CurrindaLogin {
             $output .= "<p>Your membership fees are outstanding. <a href='" . $outstanding_url . "'>Click here to make a payment.</a></p>";
         }
     }
+    $output = "</div>";
     
     return $output;
 
@@ -189,6 +196,7 @@ class CurrindaLogin {
 		load_plugin_textdomain('clw', FALSE, basename( dirname( __FILE__ ) ) .'/languages');
 	}
 
+	
 	function check_version() {
 	    $plugin_path = get_home_path() . '/wp-content/plugins/currinda-wordpress-login/login.php';
 	    $plugin_data = get_plugin_data($plugin_path);
@@ -398,7 +406,11 @@ class CurrindaLogin {
     wp_set_auth_cookie( $user_id, true );
     do_action( 'wp_login', $user->user_login );
     
-    wp_redirect( site_url() );
+    //wp_redirect( site_url() );
+    
+    // Close the current window
+    echo "<HTML><BODY><SCRIPT src='" . plugins_url( '/inc/js/currinda.js', __FILE__ ) . "'></SCRIPT><SCRIPT>currinda_child();</SCRIPT></BODY></HTML>";
+    
     exit(0);
   }
 
@@ -412,7 +424,7 @@ class CurrindaLogin {
     return new League\OAuth2\Client\Provider\CurrindaProvider(array(
       'clientId'  =>  $this->client_id,
       'clientSecret'  =>  $this->client_secret,
-      "scopes" => ["user"], 
+      "scopes" => ["user"],
       'redirectUri'   =>  $return_url,
       'url_authorize' => $url."api/$version/organisation/$this->scope/authorize",
       "url_access_token"=> $url."api/$version/organisation/$this->scope/token",
