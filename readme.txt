@@ -2,8 +2,8 @@
 Contributors: currinda
 Tags: event management, login widget, association management
 Requires at least: 4.1.0
-Tested up to: 4.1.0
-Stable tag: 0.1
+Tested up to: 4.3.1
+Stable tag: 0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ This is a Currinda login widget.
 == Description ==
 
 This widget allows single login via Currinda. This uses the Currinda login and checks the user has a valid
-registration or membership.
+registration or membership. It uses the v2.0 Currinda API (See http://currinda.com/support/api/v2.0.html).
 
 == Usage ==
 
@@ -50,6 +50,11 @@ The shortcode can be used anywhere and is specified as follows:
 
     [currinda-login class='btn btn-default']Text within link[/currinda-login]
 
+In the settings pages you can set the following URLs will we be displayed when the user does not have a fully valid membership active:
+
+1. Inactive URL
+2. Expired URL
+3. Outstanding payment URL
 
 == Support ==
 
@@ -58,6 +63,9 @@ The shortcode can be used anywhere and is specified as follows:
 
 
 == Changelog ==
+
+= 0.2 = 
+* Update to Currinda v2.0 API and enhance shortcode behaviour.
 
 = 0.1 =
 * Initial release.
