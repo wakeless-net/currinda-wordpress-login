@@ -43,6 +43,7 @@ class CurrindaLogin {
 	function currinda_scripts() {
 	    wp_register_script( 'currinda', plugins_url( '/inc/js/currinda.js', __FILE__ ), array(), CURRINDA_VERSION, true);
 	    wp_enqueue_script( 'currinda' );
+      wp_localize_script('currinda', 'WPURLS', array( 'siteurl' => get_option('siteurl') ));
 	}
 	
   function handle_shortcode($attrs, $content) {
