@@ -199,7 +199,7 @@ class CurrindaLogin {
 
 	
 	function check_version() {
-	    $plugin_path = get_home_path() . '/wp-content/plugins/currinda-wordpress-login/login.php';
+	    $plugin_path = __FILE__;
 	    $plugin_data = get_plugin_data($plugin_path);
 	    $plugin_version = $plugin_data['Version'];
 	    $existing_version = get_option('currinda_version', 'NONE');
