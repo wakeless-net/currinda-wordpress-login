@@ -73,7 +73,7 @@ class CurrindaLogin {
             $output .= "<p>Your membership fees are outstanding. <a href='" . $outstanding_url . "'>Click here to make a payment.</a></p>";
         }
     }
-    $output = "</div>";
+    $output .= "</div>";
     
     return $output;
 
@@ -426,7 +426,7 @@ class CurrindaLogin {
       'clientId'  =>  $this->client_id,
       'clientSecret'  =>  $this->client_secret,
       "scopes" => ["user"],
-      'redirectUri'   =>  $return_url,
+      'redirectUri' => $return_url,
       'url_authorize' => $url."api/$version/organisation/$this->scope/authorize",
       "url_access_token"=> $url."api/$version/organisation/$this->scope/token",
       "url_user_details" => $details_url
