@@ -256,7 +256,7 @@ class CurrindaLogin {
     if(isset($_GET['option']) and $_GET['option'] == "currinda_user_login") {
       $provider = $this->provider();
       if ( ! isset($_GET['code'])) {
-        if(isset($_GET["error"])) {
+	if(isset($_GET["error"])) {
           $this->error = new WP_Error($_GET["error"], htmlspecialchars($_GET["error_description"]));
           return $this->error;
         } else {
@@ -270,7 +270,6 @@ class CurrindaLogin {
         $token = $provider->getAccessToken('authorization_code', [
           'code' => $_GET['code']
         ]);
-
         $this->save_token($token);
 
         // Optional: Now you have a token you can look up a users profile data
@@ -284,6 +283,15 @@ class CurrindaLogin {
           return $this->error;
         }
       }
+    }else if(isset($_GET['option']) and $_GET['option'] == "currinda_ajax"){
+	try {
+          $this->setup_user_or_login((object) $_POST['userData']);
+
+        } catch (Exception $e) {
+          $this->error = new WP_Error("404", "Unfortunately you do not have a membership.");
+          //return $this->error;
+        }
+	exit;
     }
   }
 
@@ -339,6 +347,7 @@ class CurrindaLogin {
   
   function is_a_corp_member($details) {
       // Check each corporate member individually - if one is valid, then is one of these
+      if(isset($details->CorporateMemberships)){
       foreach ($details->CorporateMemberships as $corp_member) {
           if (!$this->has_expiry_date_past($corp_member->ExpiryDate) && 
                 ($corp_member->Status !== "unapproved") && 
@@ -346,6 +355,7 @@ class CurrindaLogin {
                 !$corp_member->Expired) {
             return true;
           }
+      }
       }
       return false;
   }
@@ -372,6 +382,7 @@ class CurrindaLogin {
   }
 
   function setup_user_or_login($details) {
+	$jdata = array('success'=>true);
     $user_email = $details->Email;
     $full_name = $details->FirstName." ".$details->LastName;
 
@@ -410,8 +421,8 @@ class CurrindaLogin {
     //wp_redirect( site_url() );
     
     // Close the current window
-    echo "<HTML><BODY><SCRIPT src='" . plugins_url( '/inc/js/currinda.js', __FILE__ ) . "'></SCRIPT><SCRIPT>currinda_child();</SCRIPT></BODY></HTML>";
-    
+    //echo "<HTML><BODY><SCRIPT src='" . plugins_url( '/inc/js/currinda.js', __FILE__ ) . "'></SCRIPT><SCRIPT>currinda_child();</SCRIPT></BODY></HTML>";
+    echo json_encode($jdata);
     exit(0);
   }
 

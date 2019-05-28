@@ -44,21 +44,27 @@ class CurrindaLoginWidget extends WP_Widget {
 	
 	public function loginForm($title = ""){
 		global $post;
-		$this->error_message();
 		if(!is_user_logged_in()){
-		    //<?php echo $this->url; ?option=currinda_user_login
-		?>
-      <a href='javascript:currinda_login()'><?php echo $title ? $title : "Login with Currinda" ?></a>
-		<?php 
-		} else {
-		  global $current_user;
-     	get_currentuserinfo();
+
+?>
+		<div id="error_container"></div>
+		<form id="currinda_login" action="https://<?php echo get_option('currinda_client_domain'); ?>/wordpress/api/login" method="post">
+			<input type="email" name="email" />
+			<input type="password" name="password" />
+			<input type="hidden" value="<?php echo get_option('currinda_client_scope'); ?>" name="currinda_client_scope" />
+			<input type="submit" />
+		</form>
+
+		<?php
+		}else{
+		global $current_user;
+		get_currentuserinfo();
 		$link_with_username = __('Howdy,','clw')." ".$current_user->display_name;
 		?>
-		<ul class="login_wid">
+<ul class="login_wid">
 			<li><?php echo $link_with_username;?> | <a href="<?php echo wp_logout_url(site_url()); ?>" title="<?php _e('Logout','clw');?>"><?php _e('Logout','clw');?></a></li>
 		</ul>
-		<?php 
+		<?php
 		}
 	}
 	
