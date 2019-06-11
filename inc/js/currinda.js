@@ -1,24 +1,22 @@
+var loop = setInterval(test_2, 3000);
+
 jQuery(document).ready(function(){
-	jQuery('#currinda_login').on('submit',function(e){
-		jQuery.post(jQuery(this).attr('action'),jQuery(this).serialize(),function(result){
-			var obj = jQuery.parseJSON(result);
-			if(obj.success == true){
-				jQuery.post(WPURLS.siteurl+'/?option=currinda_ajax',{'userData':obj.userData},function(resultajax){
-					var robj = jQuery.parseJSON(resultajax);
-					if(robj.success == true){
-						location.reload();
-					}
-				});
-			}else{
-				jQuery('#error_container').html("<p>"+obj.msg+"</p>");
-			}
-		});
-		e.preventDefault();
-		return false;
-	});
+	
 });
 
+function test_2(){ 
+	console.log("checking...");
+	try{
+		
+	var jsondata = jQuery.parseJSON(jQuery("#currinda_iframe").contents().find("body").html());
+	if(jsondata.success == true){
+		clearInterval(loop);
+		location.reload();
+	}
 
+	}catch(err){
+	}
+}
 
 function currinda_login() {
 	var child = window.open(WPURLS.siteurl+'/?option=currinda_user_login'); 
