@@ -19,7 +19,11 @@ function test_2(){
 	var jsondata = jQuery.parseJSON(jQuery("#currinda_iframe").contents().find("body").html());
 	if(jsondata.success == true){
 		clearInterval(loop);
-		location.reload();
+		if(jsondata.login_success_url){
+			window.location.href = jsondata.login_success_url;
+		}else{
+			location.reload();
+		}
 	}
 
 	}catch(err){
