@@ -56,7 +56,7 @@ class CurrindaLoginWidget extends WP_Widget {
 		$link_with_username = __('Howdy,','clw')." ".$current_user->display_name;
 		?>
 		<ul class="login_wid">
-			<li><?php echo $link_with_username;?> | <a href="<?php echo wp_logout_url(site_url()); ?>" title="<?php _e('Logout','clw');?>"><?php _e('Logout','clw');?></a></li>
+			<li><?php echo $link_with_username;?> | <a id="logout" data-logouturl="https://<?php echo get_option('currinda_client_domain'); ?>/logout" href="<?php echo wp_logout_url(site_url()); ?>" title="<?php _e('Logout','clw');?>"><?php _e('Logout','clw');?></a></li>
 		</ul>
 		<?php 
 		}

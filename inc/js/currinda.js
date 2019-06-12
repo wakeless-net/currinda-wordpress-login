@@ -1,7 +1,15 @@
 var loop = setInterval(test_2, 3000);
 
 jQuery(document).ready(function(){
-	
+
+	jQuery('#logout').on('click',function(e){
+		var new_win = window.open(jQuery(this).data('logouturl'));
+		new_win.close();
+		window.location.href = jQuery(this).attr('href');
+		e.preventDefault();
+		return false;
+	});
+
 });
 
 function test_2(){ 
@@ -17,6 +25,7 @@ function test_2(){
 	}catch(err){
 	}
 }
+
 
 function currinda_login() {
 	var child = window.open(WPURLS.siteurl+'/?option=currinda_user_login'); 
