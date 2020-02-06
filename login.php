@@ -38,11 +38,13 @@ class CurrindaLogin {
     add_action( 'wp_enqueue_scripts', array($this, 'currinda_scripts') );
 
     $this->update_variables();
-	}
+  }
 
 	function currinda_scripts() {
+      wp_register_script('jquery', 'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js', array(), '', true);
 	    wp_register_script( 'currinda', plugins_url( '/inc/js/currinda.js', __FILE__ ), array(), CURRINDA_VERSION, true);
-	    wp_enqueue_script( 'currinda' );
+      wp_enqueue_script( 'currinda' );
+      wp_enqueue_script( 'jquery' );
       wp_localize_script('currinda', 'WPURLS', array( 'siteurl' => get_option('siteurl') ));
 	}
 	
@@ -253,19 +255,19 @@ class CurrindaLogin {
   var $error;
 
   function login_validate() {
+    // if true, means redirected by authorization with the code
     if(isset($_GET['option']) and $_GET['option'] == "currinda_user_login") {
+
+      // CurrindaProvider instance
       $provider = $this->provider();
-      if ( ! isset($_GET['code'])) {
-        if(isset($_GET["error"])) {
+
+      if ( !isset($_GET['code']) ) {
+        if( isset($_GET["error"]) ) {
           $this->error = new WP_Error($_GET["error"], htmlspecialchars($_GET["error_description"]));
           return $this->error;
-        } else {
-          // If we don't have an authorization code then get one
-          header('Location: '.$provider->getAuthorizationUrl());
-          exit;
-        }
-
+        } 
       } else {
+
         // Try to get an access token (using the authorization code grant)
         $token = $provider->getAccessToken('authorization_code', [
           'code' => $_GET['code']
@@ -407,10 +409,13 @@ class CurrindaLogin {
     wp_set_auth_cookie( $user_id, true );
     do_action( 'wp_login', $user->user_login );
     
-    //wp_redirect( site_url() );
-    
-    // Close the current window
-    echo "<HTML><BODY><SCRIPT src='" . plugins_url( '/inc/js/currinda.js', __FILE__ ) . "'></SCRIPT><SCRIPT>currinda_child();</SCRIPT></BODY></HTML>";
+    echo "
+      <HTML>
+        <BODY>
+          <SCRIPT src='" . plugins_url( '/inc/js/currinda.js', __FILE__ ) . "'></SCRIPT>
+          <SCRIPT>currinda_reload_page();</SCRIPT>
+        </BODY>
+      </HTML>";
     
     exit(0);
   }
