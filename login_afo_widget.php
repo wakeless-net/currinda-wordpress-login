@@ -5,8 +5,8 @@ class CurrindaLoginWidget extends WP_Widget {
 	public function __construct() {
 		$this->app_id = get_option('currinda_app_id');
 		$this->app_secret = get_option('currinda_app_secret');
-    $this->domain = get_option("currinda_app_domain");
-    $this->scope = get_option("currinda_app_scope");
+		$this->domain = get_option("currinda_app_domain");
+		$this->scope = get_option("currinda_app_scope");
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_plugin_styles' ) );
 		parent::__construct(
@@ -44,22 +44,19 @@ class CurrindaLoginWidget extends WP_Widget {
 	
 	public function loginForm($title = ""){
 		global $post;
-		$this->error_message();
-		if(!is_user_logged_in()){
-		    //<?php echo $this->url; ?option=currinda_user_login
+		$this->error_message(); 
 		?>
-      <a href='javascript:currinda_login()'><?php echo $title ? $title : "Login with Currinda" ?></a>
-		<?php 
-		} else {
-		  global $current_user;
-     	get_currentuserinfo();
-		$link_with_username = __('Howdy,','clw')." ".$current_user->display_name;
-		?>
-		<ul class="login_wid">
-			<li><?php echo $link_with_username;?> | <a href="<?php echo wp_logout_url(site_url()); ?>" title="<?php _e('Logout','clw');?>"><?php _e('Logout','clw');?></a></li>
-		</ul>
-		<?php 
-		}
+	
+		<?php if ( !is_user_logged_in() ) { ?>
+			<iframe 
+				onload="auth()"
+				scrolling="no"
+				style="width:100%; height: 205px; border: none; scroll: auto; display: none;" 
+				id="currinda_iframe" 
+				src="https://<?php echo get_option('currinda_client_domain'); ?>/logout"
+				data-authurl="https://<?php echo get_option('currinda_client_domain'); ?>/api/v2/organisation/<?php echo get_option('currinda_client_scope'); ?>/authorize?client_id=<?php echo get_option('currinda_client_id'); ?>&redirect_uri=<?php echo get_site_url(); ?>%3Foption%3Dcurrinda_user_login&scope=user&response_type=code&approval_prompt=auto&version=2">
+			</iframe>
+		<?php }
 	}
 	
 	public function error_message(){
